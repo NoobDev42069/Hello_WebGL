@@ -1,0 +1,25 @@
+{
+  "name": "webgl-test",
+  "version": "1.0.0",
+  "description": "testing webgl",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "express": "^4.19.2",
+    "three": "^0.167.0",
+    "three-gltf-loader": "^1.111.0",
+    "webpack": "^5.93.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "build:watch": "webpack --watch"
+  },
+  "author": "me",
+  "license": "ISC",
+  "devDependencies": {
+    "gl-matrix": "^3.4.3",
+    "jquery": "^3.7.1",
+    "webpack-cli": "^5.1.4"
+  }
+}
