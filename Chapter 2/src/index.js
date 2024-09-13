@@ -1,7 +1,6 @@
 import { mat4,mat3, } from 'gl-matrix';
 import $ from 'jquery';
-import { Mesh } from 'three';
-import { MOUSE } from 'three';
+
 
 
 
