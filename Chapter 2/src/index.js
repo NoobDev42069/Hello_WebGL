@@ -29,7 +29,7 @@ var Buffers = {};
 //Vertex Attributes
 var attribLocations = {};
 //uniforms
-var cameraPos = [0.0,0.0,15.0],
+var cameraPos = [0.0,0.0,20.0],
     specInt = 128.0;
 
 // Matrices
@@ -74,38 +74,61 @@ var cubeMesh = function( options = {}){
     this.texture = ( options.texture !== undefined) ? options.texture : null;
     this.translation = ( options.translation !== undefined) ? options.translation : [0,0,0];
     this.origin = ( options.origin !== undefined) ? options.origin : [0,0,0];
-
-    //------------------------------------
-    //        Matrix initialization
-    //------------------------------------
-    
-    this.modelMatrix = mat4.identity(mat4.create());
-    this.normalMatrix = mat4.create();
-    mat4.invert(this.normalMatrix,this.modelMatrix);
-    mat4.transpose(this.normalMatrix,this.normalMatrix);
-    
     this.attributes = {
         indices : [],
         vertices : [],
         colors : [],
         normals : [],
-    };
+    };    
+
+    //------------------------------------
+    //        Matrix initialization
+    //------------------------------------
+    
+    this.modelMatrix = mat4.create();
+    this.normalMatrix = mat4.create();
+    //-------------------------------------
+    //              Buffers
+    //-------------------------------------
+    this.buffers = {
+        vertexBuffer : gl.createBuffer(),
+        indexBuffer : gl.createBuffer(),
+        colorBuffer : gl.createBuffer(),
+    }
+    //--------------------------------------
+    //         Attribute Locations
+    //--------------------------------------
+    this.attribLocations = {
+        vertexPositionAttribute : gl.getAttribLocation(glProgram,'aVertPos'),
+        vertexNormalAttribute : gl.getAttribLocation(glProgram,'aVertNormal'),
+        vertexColorAttribute : gl.getAttribLocation(glProgram,'aVertColor'),   
+    }    
+    //--------------------------------------
+    //          Uniform Locations
+    //--------------------------------------
+    this.uniforms = {
+        mMat : gl.getUniformLocation(glProgram,'uMmatrix'),
+        normMat : gl.getUniformLocation(glProgram,'uNmatrix'),
+    } 
+    
+    
+    
     
     //-------------------------------------------------
     //                  Attributes                     
     //-------------------------------------------------
     this.attributes.vertices = [
         // Front face
-        this.origin[0] - this.size + this.translation[0], this.origin[1] + this.size + this.translation[1], this.origin[2] + this.size + this.translation[2], // 0
-        this.origin[0] + this.size + this.translation[0], this.origin[1] + this.size + this.translation[1], this.origin[2] + this.size + this.translation[2], // 1
-        this.origin[0] + this.size + this.translation[0], this.origin[1] - this.size + this.translation[1], this.origin[2] + this.size + this.translation[2], // 2
-        this.origin[0] - this.size + this.translation[0], this.origin[1] - this.size + this.translation[1], this.origin[2] + this.size + this.translation[2], // 3
+        this.origin[0] - this.size , this.origin[1] + this.size  , this.origin[2] + this.size , // 0
+        this.origin[0] + this.size , this.origin[1] + this.size  , this.origin[2] + this.size , // 1
+        this.origin[0] + this.size , this.origin[1] - this.size  , this.origin[2] + this.size , // 2
+        this.origin[0] - this.size , this.origin[1] - this.size  , this.origin[2] + this.size , // 3
         // Back face 
-        this.origin[0] - this.size + this.translation[0], this.origin[1] + this.size + this.translation[1], this.origin[2] - this.size + this.translation[2], // 4
-        this.origin[0] + this.size + this.translation[0], this.origin[1] + this.size + this.translation[1], this.origin[2] - this.size + this.translation[2], // 5
-        this.origin[0] + this.size + this.translation[0], this.origin[1] - this.size + this.translation[1], this.origin[2] - this.size + this.translation[2], // 6
-        this.origin[0] - this.size + this.translation[0], this.origin[1] - this.size + this.translation[1], this.origin[2] - this.size + this.translation[2]  // 7
-    ]
+        this.origin[0] - this.size , this.origin[1] + this.size  , this.origin[2] - this.size , // 4
+        this.origin[0] + this.size , this.origin[1] + this.size  , this.origin[2] - this.size , // 5
+        this.origin[0] + this.size , this.origin[1] - this.size  , this.origin[2] - this.size , // 6
+        this.origin[0] - this.size , this.origin[1] - this.size  , this.origin[2] - this.size   // 7
+    ]    
     this.attributes.indices = [
         //front
         0,1,2,
@@ -125,60 +148,48 @@ var cubeMesh = function( options = {}){
         //back
         4,5,7,
         5,7,6
-    ];
+    ];    
     //-------------------------------------
-    //              Buffers
+    //              Methods
     //-------------------------------------
-    this.buffers = {
-        vertexBuffer : gl.createBuffer(),
-        indexBuffer : gl.createBuffer(),
-        colorBuffer : gl.createBuffer(),
-    }
-    //--------------------------------------
-    //         Attribute Locations
-    //--------------------------------------
-    this.attribLocations = {
-        vertexPositionAttribute : gl.getAttribLocation(glProgram,'aVertPos'),
-        vertexNormalAttribute : gl.getAttribLocation(glProgram,'aVertNormal'),
-        vertexColorAttribute : gl.getAttribLocation(glProgram,'aVertColor'),   
-    }
-    //--------------------------------------
-    //          Uniform Locations
-    //--------------------------------------
-    this.uniforms = {
-        mMat : gl.getUniformLocation(glProgram,'uMmatrix'),
-        normMat : gl.getUniformLocation(glProgram,'uNmatrix'),
-    }
 
-
-    if(this.color){
-        for(let i = 0;i < this.attributes.vertices.length; i++){
-            this.attributes.colors.push.apply(this.attributes.colors,this.color);
+    this.computeMatrices = function(){
+        mat4.identity(this.modelMatrix);
+        if(options.translation){
+            mat4.translate(this.modelMatrix,this.modelMatrix,this.translation);
         }
-        gl.bindBuffer(gl.ARRAY_BUFFER,this.buffers.colorBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.attributes.colors),gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(this.attribLocations.vertexColorAttribute);
-        gl.vertexAttribPointer(this.attribLocations.vertexColorAttribute,4,gl.FLOAT,false,0,0);
-    }
-
-
-
-gl.bindBuffer(gl.ARRAY_BUFFER,this.buffers.vertexBuffer);
-gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(this.attributes.vertices), gl.STATIC_DRAW);
-gl.enableVertexAttribArray(this.attribLocations.vertexPositionAttribute);
-gl.vertexAttribPointer(this.attribLocations.vertexPositionAttribute,3,gl.FLOAT,false,0,0);
-
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.buffers.indexBuffer);
-gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(this.attributes.indices),gl.STATIC_DRAW);
-
-gl.uniformMatrix4fv(this.uniforms.mMat,false,this.modelMatrix);
-gl.uniformMatrix4fv(this.uniforms.normMat,false,this.normalMatrix);
-
-
-
+        mat4.invert(this.normalMatrix,this.modelMatrix);
+        mat4.transpose(this.normalMatrix,this.normalMatrix);
+        
+        return{
+            modelMat: this.modelMatrix,
+            normalMat: this.normalMatrix,
+        };    
+    };    
+    
+    this.setBufferData = ()=>{
+        if(this.color){
+            for(let i = 0;i < this.attributes.vertices.length; i++){
+                this.attributes.colors.push.apply(this.attributes.colors,this.color);
+            }
+            gl.bindBuffer(gl.ARRAY_BUFFER,this.buffers.colorBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.attributes.colors),gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(this.attribLocations.vertexColorAttribute);
+            gl.vertexAttribPointer(this.attribLocations.vertexColorAttribute,4,gl.FLOAT,false,0,0);
+        }
+    
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER,this.buffers.vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(this.attributes.vertices), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(this.attribLocations.vertexPositionAttribute);
+    gl.vertexAttribPointer(this.attribLocations.vertexPositionAttribute,3,gl.FLOAT,false,0,0);
+    
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,this.buffers.indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(this.attributes.indices),gl.STATIC_DRAW);
+    
+    
+    };
 }
-
-
 
 
 
@@ -451,10 +462,8 @@ gl.vertexAttribPointer(attribLocations.vertexColorAttribute,3,gl.FLOAT,false,0,0
 var uniforms = {
     vMat : gl.getUniformLocation(glProgram,'uVmatrix'),
     pMat : gl.getUniformLocation(glProgram,'uPmatrix'),
-    mMat : gl.getUniformLocation(glProgram,'uMmatrix'),
-normMat : gl.getUniformLocation(glProgram,'uNmatrix'),
-specInt : gl.getUniformLocation(glProgram,'uSpec_intensity'),
-cameraPos : gl.getUniformLocation(glProgram,'uCameraPos'),
+    specInt : gl.getUniformLocation(glProgram,'uSpec_intensity'),
+    cameraPos : gl.getUniformLocation(glProgram,'uCameraPos'),
 };
 
 // ======================================
@@ -467,79 +476,79 @@ Matrices = {
 }
 
 var Cube = new cubeMesh({
-    translation:[-4,0,-3],
+    translation:[-5,0,-3],
     color:[0.0,0.0,1.0,1.0],
-    size : 3,
+    size : 2,
 
 });
 var Cube2 = new cubeMesh({
-    translation:[4,0,-3],
+    translation:[5,0,-3],
     color:[0.0,1.0,0.0,1.0],
-    size : 3,
+    size : 2,
 
 });
 
 var meshes = [
     Cube,Cube2
 ];
-// var angle = 0;
-// let then = 0;
-// let deltaTime = 0;
-function loop() {
+let then = 0,
+    deltaTime = 0;
+var angle = 0;
+function render(now) {
+    //time calculation
+    now *= 0.001;
+    deltaTime = now - then;
+    then = now;
+
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-        
-    //
-    //cube rotation angle calculation
-    //
-    // now *= 0.001; // convert to seconds
-    // deltaTime = now - then;
-    // then = now;
-    
-    //
-    //setup scene
-    //
-    
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    // Update any dynamic variables (e.g., angles based on user interaction)
+    // Example: Cube rotation based on mouse interaction
+    Matrices.ViewMatrix = mat4.create();
+    mat4.lookAt(Matrices.ViewMatrix,cameraPos,[0.0,0.0,0.0],[0.0,1.0,0.0]);
+    mat4.rotateY(Matrices.ViewMatrix, Matrices.ViewMatrix, angleX * Math.PI / 180);
+    mat4.rotateX(Matrices.ViewMatrix, Matrices.ViewMatrix, angleY * Math.PI / 180);
+
+    // Clear the canvas
+    gl.clearColor(0,0,0,1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.viewport(0,0,canvas.width,canvas.height);
     gl.enable(gl.DEPTH_TEST);
-    
-    
-    // Setup the view matrix (camera)
-    mat4.perspective(Matrices.ProjectionMatrix, 45, canvas.width / canvas.height, 0.1, 100);
-    mat4.lookAt(Matrices.ViewMatrix, cameraPos, [0.0, 0.0, 0.0], [0.0, 1.0, 0.0]);
-    
-    
-    // Pass the matrices and other uniforms to the shaders
-    
-    gl.uniform1f(uniforms.specInt,specInt);
-    gl.uniform3f(uniforms.cameraPos,cameraPos[0],cameraPos[1],cameraPos[2]);
-    gl.uniformMatrix4fv(uniforms.vMat, false, Matrices.ViewMatrix);
-    gl.uniformMatrix4fv(uniforms.pMat,false,Matrices.ProjectionMatrix);
-    
-    // Draw the triangle
-    meshes.forEach(function(object){
-        
-        
-        mat4.rotate(object.modelMatrix, object.modelMatrix, angleX * 2 * Math.PI/180 , [0.0, 1.0, 0.0]);
-        mat4.rotate(object.modelMatrix, object.modelMatrix, angleY * 2 * Math.PI/180, [1.0, 0.0, 0.0]);
-        
-        gl.uniformMatrix4fv(uniforms.mMat,false,object.modelMatrix);
-        gl.uniformMatrix4fv(uniforms.normMat,false,object.normalMatrix);
-        
-    
-    
-        gl.drawElements(gl.TRIANGLES,object.attributes.indices.length,gl.UNSIGNED_SHORT,0);
+    // Set up projection matrix (assuming perspective projection)
+    mat4.perspective(Matrices.ProjectionMatrix, Math.PI / 4, canvas.width / canvas.height, 0.1, 100.0);
+
+    // Loop through each mesh and render
+    meshes.forEach(function(mesh) {
+        // Compute matrices for the mesh
+        var matrices = mesh.computeMatrices();
+        var modelMat = matrices.modelMat;
+        var normalMat = matrices.normalMat;
+        //model rotation
+        mat4.rotateX(modelMat,modelMat,angle);
+        mat4.rotateY(mesh.modelMatrix,mesh.modelMatrix,angle);
+        // Bind buffers and draw
+        mesh.setBufferData();
+
+        // Set uniforms
+        gl.uniformMatrix4fv(uniforms.vMat, false, Matrices.ViewMatrix);
+        gl.uniformMatrix4fv(uniforms.pMat, false, Matrices.ProjectionMatrix);
+        gl.uniformMatrix4fv(mesh.uniforms.mMat, false, modelMat);
+        gl.uniformMatrix4fv(mesh.uniforms.normMat, false, normalMat);
+        gl.uniform3fv(uniforms.cameraPos, cameraPos);
+        gl.uniform1f(uniforms.specInt, specInt);
+
+
+        // Draw the mesh
+        gl.drawElements(gl.TRIANGLES, mesh.attributes.indices.length, gl.UNSIGNED_SHORT, 0);
     });
-    
-    // gl.drawArrays(gl.TRIANGLES, 0, 3);
-    
-    // Update the rotation angle
-    // angle += deltaTime;
+    angle+=deltaTime;
+    // Request the next frame
+    requestAnimationFrame(render);
+}
 
-    requestAnimationFrame(loop);
-};
+// Start the animation loop
+render(Date.now());
 
-loop();
+
+
+
